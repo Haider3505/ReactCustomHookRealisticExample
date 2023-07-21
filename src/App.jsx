@@ -1,50 +1,36 @@
-import React, { useEffect, useState } from 'react';
-
+import React, { Fragment, useEffect, useState, useCallback } from 'react';
+import useApi from './hooks/use-api';
 import Tasks from './components/Tasks/Tasks';
 import NewTask from './components/NewTask/NewTask';
 
 function App() {
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState(null);
   const [tasks, setTasks] = useState([]);
 
-  const fetchTasks = async (taskText) => {
-    setIsLoading(true);
-    setError(null);
-    try {
-      const response = await fetch(
-        'https://react-http-4a4b2-default-rtdb.firebaseio.com/tasks.json'
-      );
-
-      if (!response.ok) {
-        throw new Error('Request failed!');
-      }
-
-      const data = await response.json();
-
-      const loadedTasks = [];
-
-      for (const taskKey in data) {
-        loadedTasks.push({ id: taskKey, text: data[taskKey].text });
-      }
-
-      setTasks(loadedTasks);
-    } catch (err) {
-      setError(err.message || 'Something went wrong!');
+  const processData = useCallback((data) => {
+    const loadedTasks = [];
+    for (const taskKey in data) {
+      loadedTasks.push({ id: taskKey, text: data[taskKey].text });
     }
-    setIsLoading(false);
-  };
+    setTasks(loadedTasks);
+  }, []);
+
+  const { sendRequest: fetchTasks, isLoading, error } = useApi();
 
   useEffect(() => {
-    fetchTasks();
-  }, []);
+    fetchTasks(
+      {
+        url: 'https://react-http-4a4b2-default-rtdb.firebaseio.com/tasks.json',
+      },
+      processData
+    );
+  }, [fetchTasks, processData]);
 
   const taskAddHandler = (task) => {
     setTasks((prevTasks) => prevTasks.concat(task));
   };
 
   return (
-    <React.Fragment>
+    <Fragment>
       <NewTask onAddTask={taskAddHandler} />
       <Tasks
         items={tasks}
@@ -52,7 +38,7 @@ function App() {
         error={error}
         onFetch={fetchTasks}
       />
-    </React.Fragment>
+    </Fragment>
   );
 }
 
